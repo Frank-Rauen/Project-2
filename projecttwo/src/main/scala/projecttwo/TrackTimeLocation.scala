@@ -1,4 +1,5 @@
 package projecttwo
+
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions
 import org.apache.spark.sql.DataFrameReader
@@ -14,32 +15,14 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import scala.concurrent.Future
 
-object Runner {
-  def main(args: Array[String]): Unit = {
+object TrackTimeLocation {
 
-    //initialize a SparkSession, by convention called spark
-    //SparkSession is the entrypoint for a Spark application using Spark SQL
-    // it's new in Spark 2 + unifies older context objects.
-    //SparkSession is different from SparkContext in that we can have multiple sessions
-    // in the same runtime, where we only wanted 1 SparkContext per application.
-    val spark = SparkSession
-      .builder()
-      .appName("Project Two")
-      .master("local[4]")
-      .getOrCreate()
+    def demoTrack(spark: SparkSession)
+    {
+        helloTweetStream(spark)
+    }
 
-    //we want to always add an import here, it enables some syntax and code generation:
-    // if you run into mysterious errors with what should be working code, check to make sure this import exists
-    import spark.implicits._
-
-    spark.sparkContext.setLogLevel("WARN")
-
-    //helloTweetStream(spark)
-    TrackTimeLocation.demoTrack(spark);
-
-  }
-
-  def helloTweetStream(spark: SparkSession): Unit = {
+    def helloTweetStream(spark: SparkSession): Unit = {
     import spark.implicits._
 
     //grab a bearer token from the environment
@@ -53,7 +36,7 @@ object Runner {
     // we just start it running in the background and forget about it.
     import scala.concurrent.ExecutionContext.Implicits.global
     Future {
-      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=geo&expansions=geo.place_id")
+      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=geo,created_at&expansions=geo.place_id")
     }
 
     //Here we're just going to wait until a file appears in our twitterstream directory
@@ -61,7 +44,7 @@ object Runner {
     var start = System.currentTimeMillis()
     var filesFoundInDir = false
     while(!filesFoundInDir && (System.currentTimeMillis()-start) < 30000) {
-      filesFoundInDir = Files.list(Paths.get("twitterstream")).findFirst().isPresent()
+      filesFoundInDir = Files.list(Paths.get("twitterstream1")).findFirst().isPresent()
       Thread.sleep(500)
     }
     if(!filesFoundInDir) {
@@ -72,60 +55,42 @@ object Runner {
     //We're going to start with a static DF
     // both to demo it, and to infer the schema
     // streaming dataframes can't infer schema
-    val staticDf = spark.read.json("twitterstream")
+    val staticDf = spark.read.json("twitterstream1")
 
     staticDf.printSchema()
 
     //streamDf is a stream, using *Structured Streaming*
-    val streamDf = spark.readStream.schema(staticDf.schema).json("twitterstream")
+    val streamDf1 = spark.readStream.schema(staticDf.schema).json("twitterstream1")
+    val streamDf2 = spark.readStream.schema(staticDf.schema).json("twitterstream1")
 
-    //Display placenames as tweets occur.  Have to deal with a good chunk of nested data
-    // Writing a case class and using DataSets would be more initial investment, but
-    // would make writing queries like this much easier!
-    streamDf
-      .filter(!functions.isnull($"includes.places"))
-      .select(functions.element_at($"includes.places", 1)("full_name").as("Place"), ($"data.text").as("Tweet"))
-      .writeStream
-      .outputMode("append")
-      .format("console")
-      .option("truncate", false)
-      .start()
-      .awaitTermination()
-
-    //Example just getting the text:
-    // streamDf
-    //   .select($"data.text")
-    //   .writeStream
-    //   .outputMode("append")
-    //   .format("console")
-    //   .start()
-    //   .awaitTermination()
-
-    //Most used twitter handles, aggregated over time:
-    
-    // regex to extract twitter handles
-    val pattern = ".*(@\\w+)\\s+.*".r
-
-    // streamDf
-    //   .select($"data.text")
-    //   .as[String]
-    //   .flatMap(text => {text match {
-    //     case pattern(handle) => {Some(handle)}
-    //     case notFound => None
-    //   }})
-    //   .groupBy("value")
+    // streamDf1
+    //     .filter(functions.isnull($"includes.places"))
+    //   .select(functions.hour($"data.created_at").as("hour"))
+    //   .groupBy("hour")
     //   .count()
-    //   .sort(functions.desc("count"))
     //   .writeStream
     //   .outputMode("complete")
     //   .format("console")
     //   .start()
     //   .awaitTermination()
+
+    streamDf2
+        .filter(!functions.isnull($"includes.places"))
+      .select(functions.hour($"data.created_at").as("hour"))
+      .groupBy("hour")
+      .count()
+      .writeStream
+      .outputMode("complete")
+      .format("console")
+      .start()
+      .awaitTermination()
   }
 
-  def tweetStreamToDir(
+
+
+    def tweetStreamToDir(
       bearerToken: String,
-      dirname: String = "twitterstream",
+      dirname: String = "twitterstream1",
       linesPerFile: Int = 1000,
       queryString: String = ""
   ) = {
@@ -168,5 +133,4 @@ object Runner {
 
     }
   }
-
 }
