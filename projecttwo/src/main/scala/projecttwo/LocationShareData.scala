@@ -16,6 +16,7 @@ import java.nio.file.Paths
 import scala.concurrent.Future
 
 object LocationShareData {
+
     def demoTrack(spark: SparkSession)
     {
         helloTweetStream(spark)
@@ -75,7 +76,7 @@ object LocationShareData {
 
     streamDf2
         .filter(!functions.isnull($"includes.places"))
-      .select((functions.element_at($"includes.places", 1)("country").as("Country"))
+      .select(functions.element_at($"includes.places", 1)("country").as("Country"))
       .groupBy("hour")
       .count()
       .writeStream
