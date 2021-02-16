@@ -44,7 +44,7 @@ object LocationShareData {
     var start = System.currentTimeMillis()
     var filesFoundInDir = false
     while(!filesFoundInDir && (System.currentTimeMillis()-start) < 30000) {
-      filesFoundInDir = Files.list(Paths.get("twitterstream1")).findFirst().isPresent()
+      filesFoundInDir = Files.list(Paths.get("StaticLocationShareData")).findFirst().isPresent()
       Thread.sleep(500)
     }
     if(!filesFoundInDir) {
@@ -61,20 +61,8 @@ object LocationShareData {
 
     //streamDf is a stream, using *Structured Streaming*
     val streamDf1 = spark.readStream.schema(staticDf.schema).json("StaticLocationShareData")
-    val streamDf2 = spark.readStream.schema(staticDf.schema).json("StaticLocationShareData")
 
-    // streamDf1
-    //     .filter(functions.isnull($"includes.places"))
-    //   .select(functions.hour($"data.created_at").as("hour"))
-    //   .groupBy("hour")
-    //   .count()
-    //   .writeStream
-    //   .outputMode("complete")
-    //   .format("console")
-    //   .start()
-    //   .awaitTermination()
-
-    streamDf2
+    streamDf1
         .filter(!functions.isnull($"includes.places"))
       .select(functions.element_at($"includes.places", 1)("country").as("Country"))
       .groupBy("hour")
