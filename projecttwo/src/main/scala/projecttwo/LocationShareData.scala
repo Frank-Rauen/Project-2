@@ -65,7 +65,7 @@ object LocationShareData {
     streamDf1
         .filter(!functions.isnull($"includes.places"))
       .select(functions.element_at($"includes.places", 1)("country").as("Country"))
-      .groupBy("hour")
+      .groupBy("Country")
       .count()
       .writeStream
       .outputMode("complete")
