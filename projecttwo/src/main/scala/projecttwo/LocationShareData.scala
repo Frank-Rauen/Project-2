@@ -35,7 +35,7 @@ object LocationShareData {
     // we just start it running in the background and forget about it.
     import scala.concurrent.ExecutionContext.Implicits.global
     Future {
-      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=geo,created_at&expansions=geo.place_id")
+      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=geo&expansions=geo.place_id&place.fields=country")
     }
 
     //Here we're just going to wait until a file appears in our twitterstream directory
@@ -75,7 +75,7 @@ object LocationShareData {
 
     streamDf2
         .filter(!functions.isnull($"includes.places"))
-      .select(functions.hour($"data.created_at").as("hour"))
+      .select((functions.element_at($"includes.places", 1)("country").as("Country"))
       .groupBy("hour")
       .count()
       .writeStream
