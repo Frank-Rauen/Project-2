@@ -36,7 +36,7 @@ object LocationShareData {
     // we just start it running in the background and forget about it.
     import scala.concurrent.ExecutionContext.Implicits.global
     Future {
-      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=geo&expansions=geo.place_id&place.fields=country")
+      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=users&expansions=settings.geo_enabled&settings.trend_location.country")
     }
 
     //Here we're just going to wait until a file appears in our twitterstream directory
@@ -63,8 +63,8 @@ object LocationShareData {
     val streamDf1 = spark.readStream.schema(staticDf.schema).json("StaticLocationShareData")
 
     streamDf1
-        .filter(!functions.isnull($"includes.places"))
-      .select(functions.element_at($"includes.places", 1)("country").as("Country"))
+        .filter(!functions.isnull($"includes.settings"))
+      .select(functions.element_at($"includes.settings", 1)("country").as("Country")("geo_enabled"))
       .groupBy("Country")
       .count()
       .writeStream
