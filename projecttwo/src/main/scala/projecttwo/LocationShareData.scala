@@ -36,7 +36,7 @@ object LocationShareData {
     // we just start it running in the background and forget about it.
     import scala.concurrent.ExecutionContext.Implicits.global
     Future {
-      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=users&expansions=settings.geo_enabled&settings.trend_location.country")
+      tweetStreamToDir(bearerToken, queryString = "?fields=settings.geo_enabled&settings.trend_location.country")
     }
 
     //Here we're just going to wait until a file appears in our twitterstream directory
@@ -90,7 +90,7 @@ object LocationShareData {
       )
       .build()
     val uriBuilder: URIBuilder = new URIBuilder(
-      s"https://api.twitter.com/2/tweets/sample/stream$queryString"
+      s"https://api.twitter.com/1.1/account/settings.json$queryString"
     )
     val httpGet = new HttpGet(uriBuilder.build())
     //set up the authorization for this request, using our bearer token
