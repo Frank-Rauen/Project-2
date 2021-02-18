@@ -33,9 +33,9 @@ object Runner {
     import spark.implicits._
 
     spark.sparkContext.setLogLevel("WARN")
-
     //helloTweetStream(spark)
-    TrackTimeLocation.demoTrack(spark);
+    // TrackTimeLocation.demoTrack(spark);
+    LocationShareData.locationTweetStream(spark);
 
   }
 
@@ -125,7 +125,7 @@ object Runner {
 
   def tweetStreamToDir(
       bearerToken: String,
-      dirname: String = "twitterstream",
+      dirname: String = "",
       linesPerFile: Int = 1000,
       queryString: String = ""
   ) = {
