@@ -16,20 +16,13 @@ import scala.concurrent.Future
 
 object Runner {
   def main(args: Array[String]): Unit = {
-
-    //initialize a SparkSession, by convention called spark
-    //SparkSession is the entrypoint for a Spark application using Spark SQL
-    // it's new in Spark 2 + unifies older context objects.
-    //SparkSession is different from SparkContext in that we can have multiple sessions
-    // in the same runtime, where we only wanted 1 SparkContext per application.
+    
     val spark = SparkSession
       .builder()
       .appName("Project Two")
       .master("local[4]")
       .getOrCreate()
 
-    //we want to always add an import here, it enables some syntax and code generation:
-    // if you run into mysterious errors with what should be working code, check to make sure this import exists
     import spark.implicits._
 
     spark.sparkContext.setLogLevel("WARN")
