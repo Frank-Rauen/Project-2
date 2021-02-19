@@ -57,10 +57,8 @@ object LocationShareData {
     
     streamDf
     .select($"includes.users.username", $"includes.users.location")
-    .groupBy($"location")
-    .count()
     .writeStream
-    .outputMode("complete")
+    .outputMode("append")
     .format("console")
     .start()
     .awaitTermination()
@@ -98,16 +96,16 @@ object LocationShareData {
       )
       var line = reader.readLine()
       //initial filewriter, replaced every linesPerFile
-      var fileWriter = new PrintWriter(Paths.get("tweetstream.tmp").toFile)
+      var fileWriter = new PrintWriter(Paths.get("tweetstream.json").toFile)
       var lineNumber = 1
       val millis = System.currentTimeMillis() //get millis to identify the file
       while (line != null) {
         if (lineNumber % linesPerFile == 0) {
           fileWriter.close()
           Files.move(
-            Paths.get("tweetstream.tmp"),
+            Paths.get("tweetstream.json"),
             Paths.get(s"$dirname/LocationShareDataTweetStream-$millis-${lineNumber/linesPerFile}"))
-          fileWriter = new PrintWriter(Paths.get("tweetstream.tmp").toFile)
+          fileWriter = new PrintWriter(Paths.get("tweetstream.json").toFile)
         }
 
         fileWriter.println(line)
