@@ -115,4 +115,15 @@ object LocationShareData {
 
     }
   }
+
+  def staticDF(spark: SparkSession) = {
+    import spark.implicits._
+
+    val df = spark.read.option("multiline", "true").json("LocationShareDataTweetStream")
+
+    df
+    .select("includes.users.location", "data.text")
+    .show()
+
+  }
 }

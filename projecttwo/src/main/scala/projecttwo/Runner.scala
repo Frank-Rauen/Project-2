@@ -35,7 +35,8 @@ object Runner {
     spark.sparkContext.setLogLevel("WARN")
     //helloTweetStream(spark)
     // TrackTimeLocation.demoTrack(spark);
-    LocationShareData.locationTweetStream(spark);
+    // LocationShareData.locationTweetStream(spark);
+    LocationShareData.staticDF(spark);
 
   }
 
