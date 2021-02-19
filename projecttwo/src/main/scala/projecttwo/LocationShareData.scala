@@ -122,8 +122,11 @@ object LocationShareData {
     val df = spark.read.option("multiline", "true").json("LocationShareDataTweetStream")
 
     df
-    .select("includes.users.location", "data.text")
+    .select(($"includes.users.location").toString(), ($"data.text").toString(),($"includes.users.name").toString())
+    .filter(functions.count($"includes.users.location"))
     .show()
+
+    df.printSchema()
 
   }
 }
