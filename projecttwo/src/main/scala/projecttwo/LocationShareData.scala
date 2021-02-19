@@ -1,7 +1,7 @@
 package projecttwo
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.DataFrameReader
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.client.config.RequestConfig
@@ -119,13 +119,14 @@ object LocationShareData {
   def staticDF(spark: SparkSession) = {
     import spark.implicits._
 
-    val df = spark.read.option("multiline", "true").json("LocationShareDataTweetStream")
+    val df = spark.read.option("multiline", "true").json("LocationShareDataTweetStream").toDF()
 
     df
-    .select(($"includes.users.location").as("Location"), ($"data.text").as("Text"),($"includes.users.name").as("Name"))
-    .groupBy("Location")
-    .count()
-    .show()
+    .select(($"includes.users.location").alias("Location"), ($"data.text").alias("Text"),($"includes.users.name").alias("Name"))
+    .groupBy($"Location")
+    .count().withColumnRenamed("count", "Total_Tweets")
+    .sort(desc("Total_Tweets"))
+    .show(1000,false)
 
     df.printSchema()
 
