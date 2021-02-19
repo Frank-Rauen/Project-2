@@ -2,6 +2,7 @@ project/
 project/project/
 tweetstream-*
 tweetstream.tmp
+tweetstream.json
 *.parquet
 *.class
 *.log
@@ -33,3 +34,4 @@ target/
 .bloop/
 .metals/
 .vscode/
+LocationShareDataTweetStream/

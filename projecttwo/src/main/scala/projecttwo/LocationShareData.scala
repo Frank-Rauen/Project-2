@@ -15,19 +15,14 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import scala.concurrent.Future
 
-object TrackTimeLocation {
+object LocationShareData {
 
-    def demoTrack(spark: SparkSession)
-    {
-        helloTweetStream(spark)
-    }
-
-    def helloTweetStream(spark: SparkSession): Unit = {
+  def locationTweetStream(spark: SparkSession): Unit = {
     import spark.implicits._
 
     //grab a bearer token from the environment
     //never hardcode your tokens (never just put them as a string in your code)
-    val bearerToken = System.getenv(("TWITTER_BEARER_TOKEN"))
+    val bearerToken = System.getenv("TWITTER_BEARER_TOKEN")
 
     //writes all the tweets from twitter's stream into a directory
     // by default hits the sampled stream and uses "twitterstream" as the directory
@@ -36,7 +31,7 @@ object TrackTimeLocation {
     // we just start it running in the background and forget about it.
     import scala.concurrent.ExecutionContext.Implicits.global
     Future {
-      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=geo,created_at&expansions=geo.place_id")
+      tweetStreamToDir(bearerToken)
     }
 
     //Here we're just going to wait until a file appears in our twitterstream directory
@@ -44,7 +39,7 @@ object TrackTimeLocation {
     var start = System.currentTimeMillis()
     var filesFoundInDir = false
     while(!filesFoundInDir && (System.currentTimeMillis()-start) < 30000) {
-      filesFoundInDir = Files.list(Paths.get("twitterstream1")).findFirst().isPresent()
+      filesFoundInDir = Files.list(Paths.get("LocationShareDataTweetStream")).findFirst().isPresent()
       Thread.sleep(500)
     }
     if(!filesFoundInDir) {
@@ -55,44 +50,30 @@ object TrackTimeLocation {
     //We're going to start with a static DF
     // both to demo it, and to infer the schema
     // streaming dataframes can't infer schema
-    val staticDf = spark.read.json("twitterstream1")
-
-    staticDf.printSchema()
+    val staticDf = spark.read.json("LocationShareDataTweetStream")
 
     //streamDf is a stream, using *Structured Streaming*
-    val streamDf1 = spark.readStream.schema(staticDf.schema).json("twitterstream1")
-    val streamDf2 = spark.readStream.schema(staticDf.schema).json("twitterstream1")
-
-    // streamDf1
-    //     .filter(functions.isnull($"includes.places"))
-    //   .select(functions.hour($"data.created_at").as("Time_In_EST"))
-    //   .groupBy("Time_In_EST")
-    //   .count()
-    //   .writeStream
-    //   .outputMode("complete")
-    //   .format("console")
-    //   .start()
-    //   .awaitTermination()
-
-    streamDf2
-        .filter(!functions.isnull($"includes.places"))
-      .select(functions.hour($"data.created_at").as("Time_In_EST"))
-      .groupBy("Time_In_EST")
-      .count().withColumnRenamed("count","tweet_count_having_address")
-      .writeStream
-      .outputMode("complete")
-      .format("console")
-      .start()
-      .awaitTermination()
+    val streamDf = spark.readStream.schema(staticDf.schema).json("LocationShareDataTweetStream")
+    
+    streamDf
+    .select($"includes.users.username", $"includes.users.location")
+    .writeStream
+    .outputMode("append")
+    .format("console")
+    .start()
+    .awaitTermination()
   }
-
-
-
-    def tweetStreamToDir(
+  /**
+    * An example running processing on groups and using DataSets instead of DataFrames.
+    * 
+    * To use DataSets, we need case classes to represent our data.
+    *
+    * @param spark
+    */
+  def tweetStreamToDir(
       bearerToken: String,
-      dirname: String = "twitterstream1",
-      linesPerFile: Int = 1000,
-      queryString: String = ""
+      dirname: String = "LocationShareDataTweetStream",
+      linesPerFile: Int = 1000
   ) = {
     //a decent chunk of boilerplate -- from twitter docs/tutorial
     //sets up the request we're going to be sending to Twitter
@@ -102,7 +83,7 @@ object TrackTimeLocation {
       )
       .build()
     val uriBuilder: URIBuilder = new URIBuilder(
-      s"https://api.twitter.com/2/tweets/sample/stream$queryString"
+      "https://api.twitter.com/2/tweets/sample/stream?user.fields=location,name&expansions=author_id"
     )
     val httpGet = new HttpGet(uriBuilder.build())
     //set up the authorization for this request, using our bearer token
@@ -115,22 +96,37 @@ object TrackTimeLocation {
       )
       var line = reader.readLine()
       //initial filewriter, replaced every linesPerFile
-      var fileWriter = new PrintWriter(Paths.get("tweetstream.tmp").toFile)
+      var fileWriter = new PrintWriter(Paths.get("tweetstream.json").toFile)
       var lineNumber = 1
       val millis = System.currentTimeMillis() //get millis to identify the file
       while (line != null) {
         if (lineNumber % linesPerFile == 0) {
           fileWriter.close()
           Files.move(
-            Paths.get("tweetstream.tmp"),
-            Paths.get(s"$dirname/tweetstream-$millis-${lineNumber/linesPerFile}"))
-          fileWriter = new PrintWriter(Paths.get("tweetstream.tmp").toFile)
+            Paths.get("tweetstream.json"),
+            Paths.get(s"$dirname/LocationShareDataTweetStream-$millis-${lineNumber/linesPerFile}"))
+          fileWriter = new PrintWriter(Paths.get("tweetstream.json").toFile)
         }
+
         fileWriter.println(line)
         line = reader.readLine()
         lineNumber += 1
       }
 
     }
+  }
+
+  def staticDF(spark: SparkSession) = {
+    import spark.implicits._
+
+    val df = spark.read.option("multiline", "true").json("LocationShareDataTweetStream")
+
+    df
+    .select(($"includes.users.location").toString(), ($"data.text").toString(),($"includes.users.name").toString())
+    .filter(functions.count($"includes.users.location"))
+    .show()
+
+    df.printSchema()
+
   }
 }
