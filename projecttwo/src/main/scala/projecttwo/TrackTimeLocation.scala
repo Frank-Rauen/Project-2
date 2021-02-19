@@ -65,8 +65,8 @@ object TrackTimeLocation {
 
     // streamDf1
     //     .filter(functions.isnull($"includes.places"))
-    //   .select(functions.hour($"data.created_at").as("hour"))
-    //   .groupBy("hour")
+    //   .select(functions.hour($"data.created_at").as("Time_In_EST"))
+    //   .groupBy("Time_In_EST")
     //   .count()
     //   .writeStream
     //   .outputMode("complete")
@@ -76,9 +76,9 @@ object TrackTimeLocation {
 
     streamDf2
         .filter(!functions.isnull($"includes.places"))
-      .select(functions.hour($"data.created_at").as("hour"))
-      .groupBy("hour")
-      .count()
+      .select(functions.hour($"data.created_at").as("Time_In_EST"))
+      .groupBy("Time_In_EST")
+      .count().withColumnRenamed("count","tweet_count_having_address")
       .writeStream
       .outputMode("complete")
       .format("console")

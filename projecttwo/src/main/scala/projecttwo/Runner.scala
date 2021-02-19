@@ -35,7 +35,9 @@ object Runner {
     spark.sparkContext.setLogLevel("WARN")
 
     //helloTweetStream(spark)
-    TrackTimeLocation.demoTrack(spark);
+    //TrackTimeLocation.demoTrack(spark);
+
+    TrackPositiveTweetLocaton.demoPositiveTweetLocation(spark);
 
   }
 
