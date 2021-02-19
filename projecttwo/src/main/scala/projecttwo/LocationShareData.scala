@@ -124,7 +124,7 @@ object LocationShareData {
     df
     .select(($"includes.users.location").alias("Location"), ($"data.text").alias("Text"),($"includes.users.name").alias("Name"))
     .groupBy($"Location")
-    .count().withColumnRenamed("count", "Total_Tweets")
+    .count().withColumnRenamed("count", "Total_Tweets_From_Location")
     .sort(desc("Total_Tweets"))
     .show(1000,false)
 
