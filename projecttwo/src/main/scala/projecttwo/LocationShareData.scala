@@ -56,9 +56,12 @@ object LocationShareData {
     val streamDf = spark.readStream.schema(staticDf.schema).json("LocationShareDataTweetStream")
     
     streamDf
-    .select($"includes.users.username", $"includes.users.location")
+    .select(($"includes.users.location").alias("Location"), ($"data.text").alias("Text"),($"includes.users.name").alias("Name"))
+    .groupBy("Location")
+    .count().withColumnRenamed("count", "Total_Tweets_By_Location")
+    .sort(desc("Total_Tweets_By_Location"))
     .writeStream
-    .outputMode("append")
+    .outputMode("complete")
     .format("console")
     .start()
     .awaitTermination()
