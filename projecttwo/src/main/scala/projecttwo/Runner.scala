@@ -34,9 +34,9 @@ object Runner {
 
     // TrackTimeLocation.demoTrack(spark);
     
-    LocationShareData.locationTweetStream(spark)
+    // LocationShareData.locationTweetStream(spark)
 
-    // LocationTweetUserObjCompare.helloTweetStream(spark)
+    LocationTweetUserObjCompare.helloTweetStream(spark);
 
   }
 

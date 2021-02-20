@@ -54,16 +54,16 @@ object LocationTweetUserObjCompare {
     staticDf.printSchema()
 
     //streamDf is a stream, using *Structured Streaming*
-    val streamDf = spark.readStream.schema(staticDf.schema).json("LocationTweetUserObjCompareTweetStream")
+    val streamDf2 = spark.readStream.schema(staticDf.schema).json("LocationTweetUserObjCompareTweetStream")
 
-    streamDf
+    streamDf2
+    .filter(!functions.isnull($"includes.places"))
     .select(($"data.author_id").alias("ID"), ($"data.created_at").alias("Created"),($"includes.places").alias("Place"))
     .writeStream
     .outputMode("append")
     .format("console")
     .start()
     .awaitTermination()
-
     //streamDf is a stream, using *Structured Streaming*
     
   }
