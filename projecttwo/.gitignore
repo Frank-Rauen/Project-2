@@ -35,4 +35,5 @@ target/
 .metals/
 .vscode/
 LocationShareDataTweetStream/
+LocationTweetUserObjCompareTweetStream/
 gender/

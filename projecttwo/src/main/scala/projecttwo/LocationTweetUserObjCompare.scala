@@ -1,4 +1,5 @@
 package projecttwo
+
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions
 import org.apache.spark.sql.DataFrameReader
@@ -14,38 +15,14 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import scala.concurrent.Future
 
-object Runner {
-  def main(args: Array[String]): Unit = {
-    
-    val spark = SparkSession
-      .builder()
-      .appName("Project Two")
-      .master("local[4]")
-      .getOrCreate()
+object LocationTweetUserObjCompare {
 
-    import spark.implicits._
-
-    spark.sparkContext.setLogLevel("WARN")
-    //helloTweetStream(spark)
-
-    //TrackTimeLocation.demoTrack(spark);
-
-    // TrackPositiveTweetLocaton.demoPositiveTweetLocation(spark);
-
-    // TrackTimeLocation.demoTrack(spark);
-    
-    LocationShareData.locationTweetStream(spark)
-
-    // LocationTweetUserObjCompare.helloTweetStream(spark)
-
-  }
-
-  def helloTweetStream(spark: SparkSession): Unit = {
+    def helloTweetStream(spark: SparkSession): Unit = {
     import spark.implicits._
 
     //grab a bearer token from the environment
     //never hardcode your tokens (never just put them as a string in your code)
-    val bearerToken = System.getenv(("TWITTER_BEARER_TOKEN"))
+    val bearerToken = System.getenv("TWITTER_BEARER_TOKEN")
 
     //writes all the tweets from twitter's stream into a directory
     // by default hits the sampled stream and uses "twitterstream" as the directory
@@ -54,7 +31,7 @@ object Runner {
     // we just start it running in the background and forget about it.
     import scala.concurrent.ExecutionContext.Implicits.global
     Future {
-      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=geo&expansions=geo.place_id")
+      tweetStreamToDir(bearerToken)
     }
 
     //Here we're just going to wait until a file appears in our twitterstream directory
@@ -62,7 +39,7 @@ object Runner {
     var start = System.currentTimeMillis()
     var filesFoundInDir = false
     while(!filesFoundInDir && (System.currentTimeMillis()-start) < 30000) {
-      filesFoundInDir = Files.list(Paths.get("twitterstream")).findFirst().isPresent()
+      filesFoundInDir = Files.list(Paths.get("LocationTweetUserObjCompareTweetStream")).findFirst().isPresent()
       Thread.sleep(500)
     }
     if(!filesFoundInDir) {
@@ -73,62 +50,34 @@ object Runner {
     //We're going to start with a static DF
     // both to demo it, and to infer the schema
     // streaming dataframes can't infer schema
-    val staticDf = spark.read.json("twitterstream")
-
+    val staticDf = spark.read.json("LocationTweetUserObjCompareTweetStream")
     staticDf.printSchema()
 
     //streamDf is a stream, using *Structured Streaming*
-    val streamDf = spark.readStream.schema(staticDf.schema).json("twitterstream")
+    val streamDf = spark.readStream.schema(staticDf.schema).json("LocationTweetUserObjCompareTweetStream")
 
-    //Display placenames as tweets occur.  Have to deal with a good chunk of nested data
-    // Writing a case class and using DataSets would be more initial investment, but
-    // would make writing queries like this much easier!
     streamDf
-      .filter(!functions.isnull($"includes.places"))
-      .select(functions.element_at($"includes.places", 1)("full_name").as("Place"), ($"data.text").as("Tweet"))
-      .writeStream
-      .outputMode("append")
-      .format("console")
-      .option("truncate", false)
-      .start()
-      .awaitTermination()
+    .select(($"data.author_id").alias("ID"), ($"data.created_at").alias("Created"),($"includes.places").alias("Place"))
+    .writeStream
+    .outputMode("append")
+    .format("console")
+    .start()
+    .awaitTermination()
 
-    //Example just getting the text:
-    // streamDf
-    //   .select($"data.text")
-    //   .writeStream
-    //   .outputMode("append")
-    //   .format("console")
-    //   .start()
-    //   .awaitTermination()
-
-    //Most used twitter handles, aggregated over time:
+    //streamDf is a stream, using *Structured Streaming*
     
-    // regex to extract twitter handles
-    val pattern = ".*(@\\w+)\\s+.*".r
-
-    // streamDf
-    //   .select($"data.text")
-    //   .as[String]
-    //   .flatMap(text => {text match {
-    //     case pattern(handle) => {Some(handle)}
-    //     case notFound => None
-    //   }})
-    //   .groupBy("value")
-    //   .count()
-    //   .sort(functions.desc("count"))
-    //   .writeStream
-    //   .outputMode("complete")
-    //   .format("console")
-    //   .start()
-    //   .awaitTermination()
   }
-
+  /**
+    * An example running processing on groups and using DataSets instead of DataFrames.
+    * 
+    * To use DataSets, we need case classes to represent our data.
+    *
+    * @param spark
+    */
   def tweetStreamToDir(
       bearerToken: String,
-      dirname: String = "",
-      linesPerFile: Int = 1000,
-      queryString: String = ""
+      dirname: String = "LocationTweetUserObjCompareTweetStream",
+      linesPerFile: Int = 1000
   ) = {
     //a decent chunk of boilerplate -- from twitter docs/tutorial
     //sets up the request we're going to be sending to Twitter
@@ -138,7 +87,7 @@ object Runner {
       )
       .build()
     val uriBuilder: URIBuilder = new URIBuilder(
-      s"https://api.twitter.com/2/tweets/sample/stream$queryString"
+      "https://api.twitter.com/2/tweets/sample/stream?tweet.fields=geo,created_at,author_id&expansions=geo.place_id"
     )
     val httpGet = new HttpGet(uriBuilder.build())
     //set up the authorization for this request, using our bearer token
@@ -151,17 +100,18 @@ object Runner {
       )
       var line = reader.readLine()
       //initial filewriter, replaced every linesPerFile
-      var fileWriter = new PrintWriter(Paths.get("tweetstream.tmp").toFile)
+      var fileWriter = new PrintWriter(Paths.get("comparetweetstream.json").toFile)
       var lineNumber = 1
       val millis = System.currentTimeMillis() //get millis to identify the file
       while (line != null) {
         if (lineNumber % linesPerFile == 0) {
           fileWriter.close()
           Files.move(
-            Paths.get("tweetstream.tmp"),
-            Paths.get(s"$dirname/tweetstream-$millis-${lineNumber/linesPerFile}"))
-          fileWriter = new PrintWriter(Paths.get("tweetstream.tmp").toFile)
+            Paths.get("comparetweetstream.json"),
+            Paths.get(s"$dirname/LocationTweetUserObjCompareTweetStream-$millis-${lineNumber/linesPerFile}"))
+          fileWriter = new PrintWriter(Paths.get("comparetweetstream.json").toFile)
         }
+
         fileWriter.println(line)
         line = reader.readLine()
         lineNumber += 1
@@ -169,5 +119,4 @@ object Runner {
 
     }
   }
-
 }
