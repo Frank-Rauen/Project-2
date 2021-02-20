@@ -36,7 +36,9 @@ object Runner {
     
     // LocationShareData.locationTweetStream(spark);
 
-    LocationTweetUserObjCompare.helloTweetStream(spark);
+    // LocationTweetUserObjCompare.helloTweetStream(spark);
+
+    LocationTweetUserObjCompare.staticDfGenerator(spark);
 
   }
 

@@ -119,4 +119,20 @@ object LocationTweetUserObjCompare {
 
     }
   }
+
+  def staticDfGenerator(spark: SparkSession) {
+    import spark.implicits._
+
+    val staticDf = spark.read.option("header","true").json("LocationTweetUserObjCompareTweetStream").toDF()
+
+    val staticDf2 = spark.read.option("header","true").json("LocationShareDataTweetStream").toDF()
+
+    staticDf.join(staticDf2, "data.author_id")
+    .filter(!functions.isnull($"includes.places"))
+    .select(($"includes.users.location").alias("Location"), ($"includes.users.name").alias("Name"),($"includes.places").alias("Place"))
+    .show()
+
+    
+
+  }
 }
