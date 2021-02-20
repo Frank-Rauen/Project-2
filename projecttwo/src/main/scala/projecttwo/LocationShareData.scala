@@ -86,7 +86,7 @@ object LocationShareData {
       )
       .build()
     val uriBuilder: URIBuilder = new URIBuilder(
-      "https://api.twitter.com/2/tweets/sample/stream?user.fields=location,name&expansions=author_id"
+      "https://api.twitter.com/2/tweets/sample/stream?user.fields=location,name,created_at&expansions=author_id"
     )
     val httpGet = new HttpGet(uriBuilder.build())
     //set up the authorization for this request, using our bearer token
