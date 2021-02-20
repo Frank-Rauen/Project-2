@@ -50,15 +50,15 @@ object LocationTweetUserObjCompare {
     //We're going to start with a static DF
     // both to demo it, and to infer the schema
     // streaming dataframes can't infer schema
+    
     val staticDf = spark.read.json("LocationTweetUserObjCompareTweetStream")
-    staticDf.printSchema()
 
     //streamDf is a stream, using *Structured Streaming*
-    val streamDf2 = spark.readStream.schema(staticDf.schema).json("LocationTweetUserObjCompareTweetStream")
+    val streamDf = spark.readStream.schema(staticDf.schema).json("LocationTweetUserObjCompareTweetStream")
 
-    streamDf2
+    streamDf
     .filter(!functions.isnull($"includes.places"))
-    .select(($"data.author_id").alias("ID"), ($"data.created_at").alias("Created"),($"includes.places").alias("Place"))
+    .select(($"data.author_id"), ($"data.created_at").alias("Created"),($"includes.places").alias("Place"))
     .writeStream
     .outputMode("append")
     .format("console")
