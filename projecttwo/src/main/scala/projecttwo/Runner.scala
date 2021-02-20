@@ -33,8 +33,8 @@ object Runner {
     // TrackPositiveTweetLocaton.demoPositiveTweetLocation(spark);
 
     // TrackTimeLocation.demoTrack(spark);
+    
     LocationShareData.locationTweetStream(spark);
-    // LocationShareData.staticDF(spark);
 
   }
 
