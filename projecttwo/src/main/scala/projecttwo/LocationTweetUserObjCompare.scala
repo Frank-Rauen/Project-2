@@ -129,16 +129,15 @@ object LocationTweetUserObjCompare {
 
     val t1 = staticDf
     .filter(!functions.isnull($"includes.places"))
-    .select(($"data.author_id").alias("ID"), ($"data.created_at").alias("Created"),($"includes.places").alias("Place"))
+    .select(($"data.author_id").alias("ID"), ($"data.created_at").alias("Created"),($"includes.places").alias("Location_Per_Tweet"))
     .toDF()
 
     val t2 = staticDf2
     .filter(!functions.isnull($"includes.users.location"))
-    .select(($"includes.users.location").alias("Location"),($"data.author_id").alias("ID"))
+    .select(($"includes.users.location").alias("Location_Per_User"),($"data.author_id").alias("ID"))
     .toDF()
 
     t1.join(t2, "ID")
     .show()
-
-  }
+  } 
 }
