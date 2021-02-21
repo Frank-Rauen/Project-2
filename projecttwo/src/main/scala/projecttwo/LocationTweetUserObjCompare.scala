@@ -134,7 +134,7 @@ object LocationTweetUserObjCompare {
 
     val t2 = staticDf2
     .filter(!functions.isnull($"includes.users.location"))
-    .select(($"includes.users.location").alias("Location_Per_User"),($"data.author_id").alias("ID"))
+    .select(($"data.text").alias("Tweet_Content"),($"includes.users.location").alias("Location_Per_User"),($"data.author_id").alias("ID"))
     .toDF()
 
     t1.join(t2, "ID")
