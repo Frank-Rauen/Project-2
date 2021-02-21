@@ -31,6 +31,6 @@ object Runner {
     //TrackDevice.tweetStream(spark)
     //TrackDevice.staticDataQuery(spark)
     //TrackGender.tweetStream(spark)
-    TrackGender.staticDataQuery(spark)
+    //TrackGender.staticDataQuery(spark)
   }
 }
