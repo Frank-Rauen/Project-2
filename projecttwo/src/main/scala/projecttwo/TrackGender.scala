@@ -53,8 +53,9 @@ object TrackGender {
     streamDf
       .groupBy("gender")
       .count()
+      .withColumnRenamed("count","Tot_Tweets_By_Gender")
       .writeStream
-      .outputMode("update")
+      .outputMode("complete")
       .format("console")
       .option("truncate", false)
       .start()
@@ -157,45 +158,12 @@ object TrackGender {
 
   def staticDataQuery(spark: SparkSession): Unit = {
     import spark.implicits._
-
-    val df = spark.read.json("twitterstreamGender/")
-    var nameArray = df.filter(!functions.isnull($"includes.places")).select(functions.element_at($"includes.users",1)("username")).collect()
-    var i = 0
-    var genderQuery = ""
-    val dirname = "gender"
-    var fileWriter = new PrintWriter(Paths.get("gender.tmp").toFile)
-    var lineNumber = 1
-    val millis = System.currentTimeMillis()
-    for(i <- 0 to nameArray.length){
-        genderQuery=nameArray(i).toString().substring(1, nameArray(i).toString().length()-1) + "&"
-        try {
-                    val apiKey = "key=602fdc3e09b94c49a36dacf2"; //Your API Key
-                    val apiUrl = new URL(s"https://genderapi.io/twitter/?q=$genderQuery" + apiKey).openConnection.asInstanceOf[HttpURLConnection];
-
-                    if (apiUrl.getResponseCode() != 200) {
-                    throw new RuntimeException("An server error: " + apiUrl.getResponseCode());
-                    }
-
-                    val iStream = new InputStreamReader(apiUrl.getInputStream());
-                    val bReader = new BufferedReader(iStream);
-                    val gson = new Gson();
-                    val jsonOb = gson.fromJson(bReader, classOf[JsonObject]);
-                    if(i == nameArray.length-1){
-                        fileWriter.close()
-                        Files.move(
-                            Paths.get("gender.tmp"),
-                            Paths.get(s"$dirname/gender-$millis-${lineNumber/nameArray.length-1}"))
-                    }
-                    fileWriter.println(jsonOb.toString())
-                    lineNumber += 1
-                    apiUrl.disconnect();
-                } catch {
-                    case e: IOException => println("error")
-                }
-    }
-    
     val df2 = spark.read.json("gender/")
-    df2.groupBy("gender").count().show()
+    df2.groupBy("gender")
+    .count()
+    .withColumnRenamed("count","Tot_Tweets_By_Gender")
+    .withColumn("ratio", $"Tot_Tweets_By_Gender"/functions.sum("Tot_Tweets_By_Gender").over())
+    .show()
   }
 
 }

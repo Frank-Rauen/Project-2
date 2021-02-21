@@ -23,7 +23,7 @@ object TrackDevice {
 
     import scala.concurrent.ExecutionContext.Implicits.global
     Future {
-      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=source,geo&expansions=geo.place_id&place.fields=full_name")
+      tweetStreamToDir(bearerToken, queryString = "?tweet.fields=source,geo&expansions=geo.place_id")
     }
 
     var start = System.currentTimeMillis()
@@ -47,8 +47,9 @@ object TrackDevice {
       .filter(!functions.isnull($"includes.places"))
       .groupBy("data.source")
       .count()
+      .withColumnRenamed("count","Tot_Tweets_By_Device")
       .writeStream
-      .outputMode("update")
+      .outputMode("complete")
       .format("console")
       .option("truncate", false)
       .start()
@@ -107,7 +108,12 @@ object TrackDevice {
     val df = spark.read.json("twitterstreamDevice/")
     
     //df.printSchema()
-    df.filter(!functions.isnull($"includes.places")).groupBy("data.source").count().show(100,false)
+    df.filter(!functions.isnull($"includes.places"))
+    .groupBy("data.source")
+    .count()
+    .withColumnRenamed("count","Tot_Tweets_By_Device")
+    .withColumn("ratio", $"Tot_Tweets_By_Device"/functions.sum("Tot_Tweets_By_Device").over())
+    .show()
   }
 
 }
