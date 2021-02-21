@@ -123,16 +123,22 @@ object LocationTweetUserObjCompare {
   def staticDfGenerator(spark: SparkSession) {
     import spark.implicits._
 
-    val staticDf = spark.read.option("header","true").json("LocationTweetUserObjCompareTweetStream").toDF()
+    val staticDf = spark.read.option("inferSchema", "true").json("LocationTweetUserObjCompareTweetStream")
 
-    val staticDf2 = spark.read.option("header","true").json("LocationShareDataTweetStream").toDF()
+    val staticDf2 = spark.read.option("inferSchema", "true").json("LocationShareDataTweetStream")
 
-    staticDf.join(staticDf2, "data.author_id")
+    val t1 = staticDf
     .filter(!functions.isnull($"includes.places"))
-    .select(($"includes.users.location").alias("Location"), ($"includes.users.name").alias("Name"),($"includes.places").alias("Place"))
-    .show()
+    .select(($"data.author_id").alias("ID"), ($"data.created_at").alias("Created"),($"includes.places").alias("Place"))
+    .toDF()
 
-    
+    val t2 = staticDf2
+    .filter(!functions.isnull($"includes.users.location"))
+    .select(($"includes.users.location").alias("Location"),($"data.author_id").alias("ID"))
+    .toDF()
+
+    t1.join(t2, "ID")
+    .show()
 
   }
 }
